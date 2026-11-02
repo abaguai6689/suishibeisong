@@ -1,5 +1,11 @@
 package com.suishibeisong.flashcards.ui.pages
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -81,6 +87,7 @@ fun QuickScreen(vm: QuickViewModel, onBack: () -> Unit) {
     var collapsed by remember { mutableStateOf(setOf<String>()) }
     var tocOpen by remember { mutableStateOf(false) }
     var highlight by remember { mutableStateOf<String?>(null) }
+    var expandedId by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -209,10 +216,17 @@ fun QuickScreen(vm: QuickViewModel, onBack: () -> Unit) {
                             }
                             is QuickRow.CardRow -> {
                                 val highlighted = row.card.id == highlight
+                                val expanded = expandedId == row.card.id
                                 Surface(
                                     shape = RoundedCornerShape(20.dp),
                                     color = if (highlighted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .animateContentSize()
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {
+                                            expandedId = if (expanded) null else row.card.id
+                                        },
                                 ) {
                                     Column(Modifier.padding(16.dp)) {
                                         Text(
@@ -224,10 +238,18 @@ fun QuickScreen(vm: QuickViewModel, onBack: () -> Unit) {
                                             Spacer(Modifier.height(6.dp))
                                             MarkdownText(row.card.question, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
-                                        Spacer(Modifier.height(8.dp))
-                                        Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)))
-                                        Spacer(Modifier.height(10.dp))
-                                        MarkdownText(row.card.answer)
+                                        AnimatedVisibility(
+                                            visible = expanded,
+                                            enter = expandVertically() + fadeIn(),
+                                            exit = shrinkVertically() + fadeOut(),
+                                        ) {
+                                            Column {
+                                                Spacer(Modifier.height(8.dp))
+                                                Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)))
+                                                Spacer(Modifier.height(10.dp))
+                                                MarkdownText(row.card.answer)
+                                            }
+                                        }
                                     }
                                 }
                             }

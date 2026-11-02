@@ -102,6 +102,7 @@ import com.suishibeisong.flashcards.ui.components.NavTrigger
 import com.suishibeisong.flashcards.ui.components.SectionHeader
 import com.suishibeisong.flashcards.ui.components.StatChip
 import com.suishibeisong.flashcards.ui.deckKey
+import com.suishibeisong.flashcards.ui.groupKey
 import com.suishibeisong.flashcards.ui.reviewKey
 import com.suishibeisong.flashcards.ui.i18n.LocalStrings
 import com.suishibeisong.flashcards.ui.i18n.fmt
@@ -118,6 +119,7 @@ fun HomeScreen(
     onReview: () -> Unit,
     onQuick: (String) -> Unit,
     onBrowse: (String) -> Unit,
+    onOpenGroup: (String) -> Unit,
 ) {
     val s = LocalStrings.current
     val state by vm.uiState.collectAsStateWithLifecycle()
@@ -164,6 +166,8 @@ fun HomeScreen(
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
+        val grouped = state.decks.filter { it.deck.group.isNotBlank() }.groupBy { it.deck.group }
+        val ungrouped = state.decks.filter { it.deck.group.isBlank() }
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
@@ -263,20 +267,43 @@ fun HomeScreen(
                     )
                 }
             } else {
-                items(state.decks, key = { it.deck.id }) { item ->
-                    DeckCard(
-                        item = item,
-                        onClick = { onOpenDeck(item.deck.id) },
-                        onReview = {
-                            if (vm.startReview(item.deck.id, 0, false, "")) onReview()
-                        },
-                        onQuick = { onQuick(item.deck.id) },
-                        onBrowse = { onBrowse(item.deck.id) },
-                        onEdit = { editingDeck = item.deck },
-                        onRename = { renameDeck = item.deck; renameText = item.deck.name },
-                        onReset = { resetDeck = item.deck },
-                        onDelete = { deleteDeck = item.deck },
-                    )
+                if (grouped.isNotEmpty()) {
+                    item {
+                        SectionHeader(s.groups, grouped.size.toString())
+                    }
+                    items(grouped.entries.toList(), key = { "group_" + it.key }) { (group, decks) ->
+                        val cards = decks.sumOf { it.cards }
+                        val known = decks.sumOf { it.known }
+                        val due = decks.sumOf { it.due }
+                        GroupCard(
+                            name = group,
+                            deckCount = decks.size,
+                            cardCount = cards,
+                            known = known,
+                            due = due,
+                            onClick = { onOpenGroup(group) },
+                        )
+                    }
+                }
+                if (ungrouped.isNotEmpty()) {
+                    if (grouped.isNotEmpty()) {
+                        item { SectionHeader(s.ungrouped, ungrouped.size.toString()) }
+                    }
+                    items(ungrouped, key = { it.deck.id }) { item ->
+                        DeckCard(
+                            item = item,
+                            onClick = { onOpenDeck(item.deck.id) },
+                            onReview = {
+                                if (vm.startReview(item.deck.id, 0, false, "")) onReview()
+                            },
+                            onQuick = { onQuick(item.deck.id) },
+                            onBrowse = { onBrowse(item.deck.id) },
+                            onEdit = { editingDeck = item.deck },
+                            onRename = { renameDeck = item.deck; renameText = item.deck.name },
+                            onReset = { resetDeck = item.deck },
+                            onDelete = { deleteDeck = item.deck },
+                        )
+                    }
                 }
             }
         }
@@ -323,7 +350,12 @@ fun HomeScreen(
         DeckEditDialog(
             deck = deck,
             onDismiss = { editingDeck = null },
-            onSave = { name -> vm.renameDeck(deck.id, name); editingDeck = null },
+            groups = state.allDecks.mapNotNull { it.deck.group.takeIf { g -> g.isNotBlank() } }.distinct().sorted(),
+            onSave = { name, group ->
+                vm.renameDeck(deck.id, name)
+                vm.setDeckGroup(deck.id, group)
+                editingDeck = null
+            },
             onReset = { editingDeck = null; resetDeck = deck },
             onDelete = { editingDeck = null; deleteDeck = deck },
         )
@@ -373,15 +405,64 @@ fun HomeScreen(
 }
 
 @Composable
+private fun GroupCard(
+    name: String,
+    deckCount: Int,
+    cardCount: Int,
+    known: Int,
+    due: Int,
+    onClick: () -> Unit,
+) {
+    val s = LocalStrings.current
+    val fraction = if (cardCount == 0) 0f else known.toFloat() / cardCount
+    NavTrigger(groupKey(name), RoundedCornerShape(24.dp), Modifier.fillMaxWidth()) {
+        Surface(
+            shape = RectangleShape,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        ) {
+            Column(Modifier.padding(18.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(name, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "${deckCount} 个卡组  ·  ${s.deckCards.fmt(cardCount)}",
+                            fontSize = 11.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text("›", fontSize = 22.sp, color = MaterialTheme.colorScheme.primary)
+                }
+                Spacer(Modifier.height(7.dp))
+                Text(
+                    "${s.deckKnown.fmt(known)}  ·  ${s.deckDue.fmt(due)}",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(10.dp))
+                LinearProgressIndicator(
+                    progress = { fraction },
+                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun DeckEditDialog(
     deck: Deck,
+    groups: List<String>,
     onDismiss: () -> Unit,
-    onSave: (String) -> Unit,
+    onSave: (String, String) -> Unit,
     onReset: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val s = LocalStrings.current
     var name by remember(deck.id) { mutableStateOf(deck.name) }
+    var group by remember(deck.id) { mutableStateOf(deck.group) }
     OriginAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(s.editDeck) },
@@ -394,6 +475,23 @@ private fun DeckEditDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Spacer(Modifier.height(10.dp))
+                Text(s.group, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(
+                    value = group,
+                    onValueChange = { group = it },
+                    placeholder = { Text(s.groupHint) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (groups.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    ChipRow(
+                        options = listOf("" to s.ungrouped) + groups.map { it to it },
+                        selected = group,
+                        onSelect = { group = it },
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 Row {
                     TextButton(onClick = onReset) { Text(s.deckReset) }
@@ -401,7 +499,7 @@ private fun DeckEditDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(name) }) { Text(s.save) } },
+        confirmButton = { TextButton(onClick = { onSave(name, group) }) { Text(s.save) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(s.cancel) } },
     )
 }
@@ -466,6 +564,7 @@ private fun DeckCard(
                     }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(text = { Text(s.editDeck) }, onClick = { menu = false; onEdit() })
+                        DropdownMenuItem(text = { Text(s.setGroup) }, onClick = { menu = false; onEdit() })
                         DropdownMenuItem(text = { Text(s.deckReview) }, onClick = { menu = false; onReview() })
                         DropdownMenuItem(text = { Text(s.deckQuick) }, onClick = { menu = false; onQuick() })
                         DropdownMenuItem(text = { Text(s.deckBrowse) }, onClick = { menu = false; onBrowse() })

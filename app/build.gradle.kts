@@ -13,8 +13,8 @@ android {
         applicationId = "com.suishibeisong.flashcards"
         minSdk = 26
         targetSdk = 36
-        versionCode = 17
-        versionName = "1.9.0"
+        versionCode = 18
+        versionName = "1.10.0"
         vectorDrawables.useSupportLibrary = true
     }
 

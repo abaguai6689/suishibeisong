@@ -98,6 +98,11 @@ data class Strings(
     val cloudUpdating: String = "正在更新…",
     val cloudUpdateDone: String = "云端笔记已更新",
     val cloudUpdateFailed: String = "更新失败：%s",
+    val groups: String = "分组",
+    val ungrouped: String = "未分组",
+    val group: String = "分组",
+    val setGroup: String = "分组",
+    val groupHint: String = "输入分组名，可新建",
 )
 
 val ZhHans = Strings(

@@ -15,6 +15,7 @@ import com.suishibeisong.flashcards.ui.pages.DataSettingsScreen
 import com.suishibeisong.flashcards.ui.pages.DeckCardsScreen
 import com.suishibeisong.flashcards.ui.pages.DeckScreen
 import com.suishibeisong.flashcards.ui.pages.GeneralSettingsScreen
+import com.suishibeisong.flashcards.ui.pages.GroupScreen
 import com.suishibeisong.flashcards.ui.pages.HomeScreen
 import com.suishibeisong.flashcards.ui.pages.QuickScreen
 import com.suishibeisong.flashcards.ui.pages.ReadingSettingsScreen
@@ -23,6 +24,7 @@ import com.suishibeisong.flashcards.ui.pages.SettingsScreen
 import com.suishibeisong.flashcards.ui.pages.StatsScreen
 import com.suishibeisong.flashcards.viewmodel.BrowseViewModel
 import com.suishibeisong.flashcards.viewmodel.DeckViewModel
+import com.suishibeisong.flashcards.viewmodel.GroupViewModel
 import com.suishibeisong.flashcards.viewmodel.HomeViewModel
 import com.suishibeisong.flashcards.viewmodel.QuickViewModel
 import com.suishibeisong.flashcards.viewmodel.ReviewViewModel
@@ -39,6 +41,7 @@ fun deckCardsKey(deckId: String, category: String, chapter: String = "") = "deck
 fun reviewKey(deckId: String, resume: Boolean = false) = "review_${deckId}_$resume"
 fun quickKey(deckId: String) = "quick_$deckId"
 fun browseKey(deckId: String) = "browse_$deckId"
+fun groupKey(group: String) = "group_$group"
 
 object RootDestination : Destination() {
     override val key = "root"
@@ -73,6 +76,7 @@ object RootDestination : Destination() {
                             },
                             onQuick = { nav.push(QuickDestination(it)) },
                             onBrowse = { nav.push(BrowseDestination(it)) },
+                            onOpenGroup = { nav.push(GroupDestination(it)) },
                         )
                     }
                     1 -> {
@@ -98,6 +102,23 @@ object RootDestination : Destination() {
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
+    }
+}
+
+data class GroupDestination(val group: String) : Destination() {
+    override val key = groupKey(group)
+
+    @Composable
+    override fun Content() {
+        val deps = LocalAppDeps.current
+        val nav = LocalNavController.current
+        val vm = appViewModel("group-$group") { GroupViewModel(deps.repo, group) }
+        GroupScreen(
+            vm = vm,
+            groupName = group,
+            onOpenDeck = { nav.push(DeckDestination(it)) },
+            onBack = { nav.pop() },
+        )
     }
 }
 

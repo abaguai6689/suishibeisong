@@ -94,6 +94,7 @@ class HomeViewModel(private val repo: FlashcardRepository) : ViewModel() {
 
     fun renameDeck(deckId: String, name: String) = repo.renameDeck(deckId, name)
     fun deleteDeck(deckId: String) = repo.deleteDeck(deckId)
+    fun setDeckGroup(deckId: String, group: String) = repo.setDeckGroup(deckId, group)
     fun resetDeck(deckId: String) = repo.resetDeckProgress(deckId)
 
     fun startReview(deckId: String, count: Int, weakOnly: Boolean, chapter: String, statusFilter: String = "all"): Boolean =

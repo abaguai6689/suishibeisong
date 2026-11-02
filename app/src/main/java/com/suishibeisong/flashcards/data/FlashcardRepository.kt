@@ -198,6 +198,7 @@ class FlashcardRepository(private val context: Context) {
             cloudUploadedAt = cloud?.uploadedAt.orEmpty(),
             cloudSize = cloud?.size ?: 0L,
             cloudFileName = cloud?.name.orEmpty(),
+            group = cloud?.group.orEmpty(),
             cards = cards,
         )
 
@@ -386,6 +387,12 @@ class FlashcardRepository(private val context: Context) {
     }
 
     /* ------------------------------ actions ------------------------------ */
+
+    fun setDeckGroup(deckId: String, group: String) = update { s ->
+        s.copy(decks = s.decks.map { d ->
+            if (d.id == deckId) d.copy(group = group.trim()) else d
+        })
+    }
 
     fun deleteDeck(deckId: String) {
         update { s ->

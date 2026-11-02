@@ -38,6 +38,7 @@ data class Deck(
     val cloudUploadedAt: String = "",
     val cloudSize: Long = 0L,
     val cloudFileName: String = "",
+    val group: String = "",
     val cards: List<Card> = emptyList(),
 )
 

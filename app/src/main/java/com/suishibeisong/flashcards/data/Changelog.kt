@@ -13,6 +13,16 @@ data class ChangelogEntry(
 object Changelog {
     val entries = listOf(
         ChangelogEntry(
+            version = "1.10.0",
+            date = "2026-11-02",
+            changes = listOf(
+                "首页新增卡组分组：相同分组的卡组折叠成一个大组，点进去再显示具体卡组",
+                "云端元数据新增 group 字段，导入时自动归入云端分组",
+                "长按笔记编辑框和三点菜单新增分组设置，可新建分组或选择已有分组",
+                "分类速记页答案默认收起，点击卡片才展开，且同时只展开一张",
+            ),
+        ),
+        ChangelogEntry(
             version = "1.9.0",
             date = "2026-10-28",
             changes = listOf(
