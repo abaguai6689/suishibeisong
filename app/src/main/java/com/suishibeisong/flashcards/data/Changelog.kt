@@ -13,6 +13,13 @@ data class ChangelogEntry(
 object Changelog {
     val entries = listOf(
         ChangelogEntry(
+            version = "1.10.1",
+            date = "2026-11-02",
+            changes = listOf(
+                "已有云端笔记在启动时自动同步云端分组（仅当本地分组为空时）",
+            ),
+        ),
+        ChangelogEntry(
             version = "1.10.0",
             date = "2026-11-02",
             changes = listOf(

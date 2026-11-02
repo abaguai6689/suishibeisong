@@ -102,6 +102,12 @@ private fun AppContent(repo: FlashcardRepository) {
     LaunchedEffect(Unit) {
         if (appState.decks.none { it.cloudId.isNotBlank() }) return@LaunchedEffect
         val remote = CloudDecks.list().getOrNull() ?: return@LaunchedEffect
+        appState.decks.forEach { deck ->
+            val remoteDeck = remote.decks.find { it.id == deck.cloudId }
+            if (remoteDeck != null && deck.group.isBlank() && remoteDeck.group.isNotBlank()) {
+                repo.setDeckGroup(deck.id, remoteDeck.group)
+            }
+        }
         val outdated = appState.decks.mapNotNull { deck ->
             val latest = remote.decks.find { it.id == deck.cloudId && it.version > deck.cloudVersion }
             if (latest != null) CloudUpdate(deck, latest) else null
